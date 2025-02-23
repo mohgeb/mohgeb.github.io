@@ -1,1 +1,193 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Photon-Plasma Vector Field Interaction</title>
+    <style>
+        body {
+            margin: 0;
+            background: #000;
+            color: #fff;
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+        }
+        .controls {
+            position: absolute;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.85);
+            border-radius: 10px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 1;
+            margin: 10px;
+            width: 280px;
+            transition: all 0.3s ease;
+        }
+        .controls.minimized {
+            width: auto;
+            height: auto;
+            padding: 10px;
+        }
+        .controls.minimized .control-content {
+            display: none;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            cursor: pointer;
+        }
+        .title {
+            font-size: 14px;
+            color: #fff;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 0;
+        }
+        .minimize-btn {
+            background: none;
+            border: none;
+            color: #fff;
+            cursor: pointer;
+            padding: 0 5px;
+            font-size: 18px;
+        }
+        .control-group {
+            margin-bottom: 10px;
+        }
+        .control-group label {
+            display: block;
+            margin-bottom: 3px;
+            color: #aaa;
+            font-size: 12px;
+        }
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        input[type="range"] {
+            flex: 1;
+            -webkit-appearance: none;
+            height: 4px;
+            border-radius: 2px;
+            background: #333;
+            outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #4CAF50;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .value-display {
+            min-width: 35px;
+            text-align: right;
+            font-family: monospace;
+            font-size: 12px;
+            color: #4CAF50;
+        }
+        .button-group {
+            display: flex;
+            gap: 8px;
+        }
+        button {
+            flex: 1;
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+        }
+        .btn-add {
+            background: #4CAF50;
+            color: white;
+        }
+        .btn-clear {
+            background: #f44336;
+            color: white;
+        }
+        button:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <div class="header" onclick="toggleMenu()">
+            <h2 class="title">Photon Plasma Simulator</h2>
+            <button class="minimize-btn">−</button>
+        </div>
+        
+        <div class="control-content">
+            <div class="control-group">
+                <label>Plasma Density</label>
+                <div class="slider-container">
+                    <input type="range" id="plasmaDensity" min="0" max="1" step="0.01" value="0.5">
+                    <div class="value-display" id="plasmaDensityValue">0.50</div>
+                </div>
+            </div>
 
+            <div class="control-group">
+                <label>Vector Visibility</label>
+                <div class="slider-container">
+                    <input type="range" id="vectorVisibility" min="0" max="1" step="0.01" value="0.3">
+                    <div class="value-display" id="vectorVisibilityValue">0.30</div>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>Photon Energy</label>
+                <div class="slider-container">
+                    <input type="range" id="photonEnergy" min="0.1" max="2" step="0.1" value="1">
+                    <div class="value-display" id="photonEnergyValue">1.00</div>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>Photon Speed</label>
+                <div class="slider-container">
+                    <input type="range" id="photonSpeed" min="1" max="10" step="0.1" value="3">
+                    <div class="value-display" id="photonSpeedValue">3.00</div>
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button class="btn-add" onclick="addPhoton()">Add Photon</button>
+                <button class="btn-clear" onclick="clearPhotons()">Clear</button>
+            </div>
+        </div>
+    </div>
+    <canvas id="canvas"></canvas>
+
+    <script>
+        // [Previous JavaScript code remains the same until the end]
+
+        // Add this new function for menu toggle
+        function toggleMenu() {
+            const controls = document.querySelector('.controls');
+            const minButton = document.querySelector('.minimize-btn');
+            controls.classList.toggle('minimized');
+            minButton.textContent = controls.classList.contains('minimized') ? '+' : '−';
+        }
+
+        // Initialize
+        window.onload = () => {
+            updateValueDisplay('plasmaDensity', 0.5);
+            updateValueDisplay('vectorVisibility', 0.3);
+            updateValueDisplay('photonEnergy', 1.0);
+            updateValueDisplay('photonSpeed', 3.0);
+            addPhoton();
+            animate();
+        };
+    </script>
+</body>
+</html>
