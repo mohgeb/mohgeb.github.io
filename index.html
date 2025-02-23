@@ -36,6 +36,7 @@
             align-items: center;
             margin-bottom: 15px;
             cursor: pointer;
+            user-select: none;
         }
         .title {
             font-size: 14px;
@@ -43,6 +44,7 @@
             text-transform: uppercase;
             letter-spacing: 1px;
             margin: 0;
+            padding-right: 15px;
         }
         .minimize-btn {
             background: none;
@@ -93,6 +95,7 @@
         .button-group {
             display: flex;
             gap: 8px;
+            margin-top: 15px;
         }
         button {
             flex: 1;
@@ -169,14 +172,216 @@
     <canvas id="canvas"></canvas>
 
     <script>
-        // [Previous JavaScript code remains the same until the end]
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
 
-        // Add this new function for menu toggle
+        // Set canvas size
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        class PlasmaField {
+            constructor() {
+                this.density = 0.5;
+                this.vectorVisibility = 0.3;
+                this.gridSize = 30;
+                this.time = 0;
+                this.activeRadius = 150;
+            }
+
+            getVector(x, y, time) {
+                const angle = (Math.sin(x/100 + time) + Math.cos(y/100 + time)) * Math.PI;
+                return {
+                    x: Math.cos(angle) * this.density,
+                    y: Math.sin(angle) * this.density
+                };
+            }
+
+            drawVector(x, y, photons) {
+                const vector = this.getVector(x, y, this.time);
+                let intensity = this.vectorVisibility;
+                
+                photons.forEach(photon => {
+                    const dx = photon.x - x;
+                    const dy = photon.y - y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    if (distance < this.activeRadius) {
+                        intensity = Math.max(intensity, 1 - (distance / this.activeRadius));
+                    }
+                });
+
+                const scale = 15;
+                const endX = x + vector.x * scale;
+                const endY = y + vector.y * scale;
+
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.lineTo(endX, endY);
+                
+                const hue = (Math.atan2(vector.y, vector.x) * 180 / Math.PI + 360) % 360;
+                ctx.strokeStyle = `hsla(${hue}, 70%, 50%, ${intensity})`;
+                ctx.lineWidth = 1;
+                ctx.stroke();
+
+                const headLen = 5;
+                const angle = Math.atan2(vector.y, vector.x);
+                ctx.beginPath();
+                ctx.moveTo(endX, endY);
+                ctx.lineTo(
+                    endX - headLen * Math.cos(angle - Math.PI/6),
+                    endY - headLen * Math.sin(angle - Math.PI/6)
+                );
+                ctx.moveTo(endX, endY);
+                ctx.lineTo(
+                    endX - headLen * Math.cos(angle + Math.PI/6),
+                    endY - headLen * Math.sin(angle + Math.PI/6)
+                );
+                ctx.stroke();
+            }
+
+            update() {
+                this.time += 0.01;
+            }
+
+            draw(photons) {
+                for(let x = 0; x < canvas.width; x += this.gridSize) {
+                    for(let y = 0; y < canvas.height; y += this.gridSize) {
+                        this.drawVector(x, y, photons);
+                    }
+                }
+            }
+        }
+
+        class Photon {
+            constructor(x, y, energy, speed) {
+                this.x = x || canvas.width/4;
+                this.y = y || canvas.height/2;
+                this.energy = energy || 1;
+                this.speed = speed || 3;
+                this.angle = 0;
+                this.history = [];
+                this.maxHistory = 50;
+            }
+
+            update(plasmaField) {
+                this.history.push({x: this.x, y: this.y});
+                if(this.history.length > this.maxHistory) {
+                    this.history.shift();
+                }
+
+                const vector = plasmaField.getVector(this.x, this.y, plasmaField.time);
+                const targetAngle = Math.atan2(vector.y, vector.x);
+                const angleDiff = targetAngle - this.angle;
+                this.angle += angleDiff * (0.1 / this.energy);
+
+                this.x += Math.cos(this.angle) * this.speed;
+                this.y += Math.sin(this.angle) * this.speed;
+
+                this.x = (this.x + canvas.width) % canvas.width;
+                this.y = (this.y + canvas.height) % canvas.height;
+            }
+
+            draw() {
+                if (this.history.length < 2) return;
+
+                ctx.beginPath();
+                ctx.moveTo(this.history[0].x, this.history[0].y);
+                this.history.forEach((pos, i) => {
+                    if (i > 0) ctx.lineTo(pos.x, pos.y);
+                });
+                ctx.lineTo(this.x, this.y);
+                
+                const gradient = ctx.createLinearGradient(
+                    this.history[0].x,
+                    this.history[0].y,
+                    this.x,
+                    this.y
+                );
+                gradient.addColorStop(0, `rgba(255,200,100,0)`);
+                gradient.addColorStop(1, `rgba(255,200,100,${this.energy})`);
+                
+                ctx.strokeStyle = gradient;
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                ctx.fillStyle = `rgba(255,200,100,${this.energy})`;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 4, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        const plasmaField = new PlasmaField();
+        const photons = [];
+
+        function addPhoton() {
+            const energy = parseFloat(document.getElementById('photonEnergy').value);
+            const speed = parseFloat(document.getElementById('photonSpeed').value);
+            photons.push(new Photon(
+                canvas.width/4,
+                canvas.height/2,
+                energy,
+                speed
+            ));
+        }
+
+        function clearPhotons() {
+            photons.length = 0;
+        }
+
         function toggleMenu() {
             const controls = document.querySelector('.controls');
             const minButton = document.querySelector('.minimize-btn');
             controls.classList.toggle('minimized');
             minButton.textContent = controls.classList.contains('minimized') ? '+' : '−';
+        }
+
+        function updateValueDisplay(inputId, value) {
+            document.getElementById(inputId + 'Value').textContent = value.toFixed(2);
+        }
+
+        // Control handlers
+        document.getElementById('plasmaDensity').addEventListener('input', (e) => {
+            const value = parseFloat(e.target.value);
+            plasmaField.density = value;
+            updateValueDisplay('plasmaDensity', value);
+        });
+
+        document.getElementById('vectorVisibility').addEventListener('input', (e) => {
+            const value = parseFloat(e.target.value);
+            plasmaField.vectorVisibility = value;
+            updateValueDisplay('vectorVisibility', value);
+        });
+
+        document.getElementById('photonEnergy').addEventListener('input', (e) => {
+            const value = parseFloat(e.target.value);
+            updateValueDisplay('photonEnergy', value);
+        });
+
+        document.getElementById('photonSpeed').addEventListener('input', (e) => {
+            const value = parseFloat(e.target.value);
+            updateValueDisplay('photonSpeed', value);
+            photons.forEach(photon => {
+                photon.speed = value;
+            });
+        });
+
+        function animate() {
+            ctx.fillStyle = 'rgba(0,0,0,0.1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            plasmaField.update();
+            plasmaField.draw(photons);
+
+            photons.forEach(photon => {
+                photon.update(plasmaField);
+                photon.draw();
+            });
+
+            requestAnimationFrame(animate);
         }
 
         // Initialize
